@@ -19,8 +19,24 @@ class SitemapParser:
         """Initialize sitemap parser with optional session."""
         self.session = session or requests.Session()
         self.session.headers.update({
-            'User-Agent': 'crawl-url/1.0 (Sitemap Parser)'
+            'User-Agent': 'crawl-url/1.0 (Sitemap Parser)',
+            'Accept': 'application/xml, text/xml, */*',
+            'Accept-Encoding': 'gzip, deflate'
         })
+        
+        # Configure retry strategy for better reliability
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+        
+        retry_strategy = Retry(
+            total=2,
+            backoff_factor=0.5,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
         
     def parse_sitemap_efficiently(
         self, 
@@ -41,7 +57,7 @@ class SitemapParser:
             # Handle different source types
             if isinstance(file_source, str):
                 if file_source.startswith(('http://', 'https://')):
-                    file_obj = self._fetch_sitemap_content(file_source)
+                    file_obj = self._fetch_sitemap_content(file_source, timeout=10)
                 else:
                     file_obj = self._open_local_file(file_source, is_compressed)
             else:
@@ -95,10 +111,14 @@ class SitemapParser:
     def parse_sitemap_index(self, index_source: Union[str, BytesIO]) -> List[Dict[str, str]]:
         """Parse sitemap index and return list of sitemap URLs."""
         try:
-            if isinstance(index_source, str) and index_source.startswith(('http://', 'https://')):
-                file_obj = self._fetch_sitemap_content(index_source)
+            if isinstance(index_source, str):
+                if index_source.startswith(('http://', 'https://')):
+                    file_obj = self._fetch_sitemap_content(index_source, timeout=10)
+                else:
+                    file_obj = self._open_local_file(index_source, False)
             else:
-                file_obj = self._open_local_file(index_source, False)
+                # It's already a file-like object (BytesIO)
+                file_obj = index_source
             
             sitemaps = []
             context = etree.iterparse(file_obj, events=('start', 'end'))
@@ -154,9 +174,9 @@ class SitemapParser:
         
         return discovered_sitemaps
 
-    def _fetch_sitemap_content(self, url: str) -> BytesIO:
+    def _fetch_sitemap_content(self, url: str, timeout: int = 15) -> BytesIO:
         """Fetch sitemap content from URL with compression handling."""
-        response = self.session.get(url, timeout=30)
+        response = self.session.get(url, timeout=timeout)
         response.raise_for_status()
         
         # The requests library automatically decompresses gzip content when
@@ -297,34 +317,67 @@ class SitemapService:
     
     def _process_sitemap_index(self, index_url: str, filter_base: Optional[str]) -> CrawlResult:
         """Process sitemap index and all contained sitemaps."""
-        sitemaps = self.parser.parse_sitemap_index(index_url)
-        all_urls = []
-        errors = []
-        
-        for i, sitemap_info in enumerate(sitemaps):
-            if self.progress_callback:
-                self.progress_callback(
-                    f"Processing sitemap {i+1}/{len(sitemaps)}", 
-                    len(all_urls)
+        try:
+            sitemaps = self.parser.parse_sitemap_index(index_url)
+            if not sitemaps:
+                return CrawlResult(
+                    success=False,
+                    urls=[],
+                    count=0,
+                    message='No sitemaps found in sitemap index',
+                    errors=[]
                 )
             
-            try:
-                sitemap_url = sitemap_info['loc']
-                entries = self.parser.parse_sitemap_efficiently(sitemap_url)
-                urls = self._extract_and_filter_urls(entries, filter_base)
-                all_urls.extend(urls)
-            except Exception as e:
-                error_msg = f"Error processing sitemap {sitemap_info.get('loc', 'unknown')}: {e}"
-                errors.append(error_msg)
-                logging.error(error_msg)
-        
-        return CrawlResult(
-            success=True,
-            urls=all_urls,
-            count=len(all_urls),
-            message=f'Processed {len(sitemaps)} sitemaps from index',
-            errors=errors
-        )
+            all_urls = []
+            errors = []
+            successful_sitemaps = 0
+            
+            for i, sitemap_info in enumerate(sitemaps):
+                if self.progress_callback:
+                    self.progress_callback(
+                        f"Processing sitemap {i+1}/{len(sitemaps)}", 
+                        len(all_urls)
+                    )
+                
+                try:
+                    sitemap_url = sitemap_info['loc']
+                    logging.info(f"Processing sitemap: {sitemap_url}")
+                    
+                    # Parse the individual sitemap with timeout handling
+                    entries = self.parser.parse_sitemap_efficiently(sitemap_url)
+                    urls = self._extract_and_filter_urls(entries, filter_base)
+                    
+                    if urls:
+                        all_urls.extend(urls)
+                        successful_sitemaps += 1
+                        logging.info(f"Successfully processed {sitemap_url}: {len(urls)} URLs")
+                    else:
+                        logging.warning(f"No URLs found in sitemap: {sitemap_url}")
+                        
+                except Exception as e:
+                    error_msg = f"Error processing sitemap {sitemap_info.get('loc', 'unknown')}: {str(e)}"
+                    errors.append(error_msg)
+                    logging.error(error_msg)
+            
+            # Consider it successful if we got at least some URLs or processed some sitemaps
+            success = len(all_urls) > 0 or successful_sitemaps > 0
+            
+            return CrawlResult(
+                success=success,
+                urls=all_urls,
+                count=len(all_urls),
+                message=f'Processed {successful_sitemaps}/{len(sitemaps)} sitemaps from index',
+                errors=errors
+            )
+            
+        except Exception as e:
+            return CrawlResult(
+                success=False,
+                urls=[],
+                count=0,
+                message=f'Error processing sitemap index: {str(e)}',
+                errors=[str(e)]
+            )
     
     def _process_single_sitemap(self, sitemap_url: str, filter_base: Optional[str]) -> CrawlResult:
         """Process a single sitemap file."""
