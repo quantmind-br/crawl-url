@@ -4,15 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**crawl-url** is a Python CLI tool for extracting URLs from websites with two main modes: sitemap.xml parsing and recursive website crawling. It features an interactive PyTermGUI-based terminal interface with Windows compatibility detection and automatic console fallback.
+**crawl-url** is a Python CLI tool for extracting URLs from websites with two modes: sitemap.xml parsing and recursive crawling. Features Windows-compatible console fallback for PyTermGUI issues.
 
 ## Development Commands
 
 ### Setup and Installation
 ```bash
-# Create virtual environment and install development dependencies
+# Quick setup (Windows)
+python setup.bat
+
+# Quick setup (Unix/Linux/Mac)
+./setup-advanced.bat
+
+# Manual setup
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Windows: venv\Scripts\activate
+# Unix: source venv/bin/activate
 pip install -e ".[dev]"
 ```
 
@@ -64,34 +71,29 @@ pip install -e .
 
 # Test CLI installation
 crawl-url --help
+
+# Run validation test
+python final_validation.py
 ```
 
 ## Architecture Overview
 
-### Core Structure
-- **`src/crawl_url/cli.py`**: Main CLI entry point using Typer framework
-- **`src/crawl_url/core/`**: Core business logic
-  - `models.py`: Data classes (CrawlConfig, CrawlResult, SitemapEntry)
-  - `crawler.py`: Web crawling implementation with depth limits and rate limiting
-  - `sitemap_parser.py`: XML sitemap parsing with sitemap index support
-  - `ui.py`: PyTermGUI interactive interface with Windows compatibility
-- **`src/crawl_url/utils/`**: Utility modules for storage and validation
+### Architecture
+Package: `src/crawl_url/` - modular Python CLI tool
 
-### Key Components
+**Entry Points:**
+- `cli.py:main()` → Typer CLI registration
+- `__init__.py:get_version()` → Package metadata
 
-**Dual Operation Modes:**
-- **Sitemap Mode**: Efficiently parses sitemap.xml files and sitemap indexes
-- **Crawl Mode**: Recursive website crawling with configurable depth (1-10)
+**Core Domain:**
+- `models.py` → Config/result validation (pydantic-style)
+- `crawler.py` → HTTP crawling + robots.txt + rate limiting
+- `sitemap_parser.py` → XML sitemap + sitemap index parsing
+- `ui.py` → PyTermGUI with Windows console fallback
 
-**Cross-Platform Compatibility:**
-- Windows: Automatic PyTermGUI compatibility detection with console mode fallback
-- Linux: Full PyTermGUI interface support
-- Platform-specific handling in `ui.py` and CLI commands
-
-**Data Models:**
-- `CrawlConfig`: Comprehensive configuration validation with mode, depth, and rate limiting
-- `CrawlResult`: Standardized result structure with success status and metadata
-- `SitemapEntry`: XML sitemap entry representation
+**Utilities:**
+- `storage.py` → File persistence (TXT/JSON/CSV outputs)
+- `validation.py` → URL filtering and validation utilities
 
 ### Testing Architecture
 - **Unit Tests**: Complete coverage of core modules with extensive mocking
@@ -99,43 +101,28 @@ crawl-url --help
 - **Platform Testing**: Windows/Linux compatibility validation
 - **Test Fixtures**: Comprehensive test data including HTML, XML, and configuration samples
 
-## Development Patterns
+### Quality Pipeline
+- **Format**: `black` (88 chars) → `ruff check` → `mypy --strict`
+- **Test**: `pytest` with markers: unit, integration, slow
+- **Build**: `python -m build` outputs .whl + .tar.gz
 
-### Configuration Management
-- Uses `pyproject.toml` for modern Python packaging
-- Environment variable support for default settings
-- Configuration file support (`.crawl-url.json`)
+### Operations
+**Dual modes in CLI:**
+```bash
+crawl-url crawl https://example.com          # recursive (depth=3)
+crawl-url crawl https://example.com/sitemap  # sitemap mode (auto)
+```
 
-### Error Handling
-- Graceful degradation for Windows PyTermGUI compatibility issues
-- Comprehensive validation in data models using Pydantic-style patterns
-- Rate limiting and robots.txt compliance for ethical crawling
+**Interactive options from `cli.py`:**
+```bash
+crawl-url interactive                    # TUI + Windows console fallback
+crawl-url crawl <url> --mode sitemap     # Force sitemap parsing
+crawl-url crawl <url> --format json      # Change output format
+crawl-url crawl <url> --depth 5          # Adjust crawl depth
+crawl-url crawl <url> --delay 1.0        # Rate limiting
+```
 
-### Testing Patterns
-- Extensive use of `pytest-mock` for external dependency mocking
-- Separate test markers for unit/integration/slow tests
-- Coverage reporting with HTML output for detailed analysis
-
-### Code Quality Standards
-- Black formatting with 88-character line length
-- Ruff linting with comprehensive rule set
-- MyPy strict type checking for Python 3.8+
-- Pre-commit hooks available for quality enforcement
-
-## Key Dependencies
-- **CLI Framework**: Typer for modern command-line interface
-- **TUI Framework**: PyTermGUI for interactive terminal interface
-- **Web Requests**: requests library with BeautifulSoup4 for HTML parsing
-- **XML Processing**: lxml for fast sitemap.xml parsing
-- **Rich Output**: Rich library for progress bars and formatting
-
-## Platform-Specific Notes
-
-### Windows Development
-- PyTermGUI may fail on some Windows configurations - automatic console fallback implemented
-- Test platform detection in `test_ui.py` for Windows-specific behavior
-- Unicode handling considerations for Windows terminals
-
-### Linux Development
-- Full PyTermGUI interface support expected
-- Terminal compatibility detection for optimal user experience
+### Platform Specifics
+- Windows: Console mode defaults (no PyTermGUI compatibility issues)
+- Linux: Full PyTermGUI interface with rich terminal features
+- All platforms: robots.txt compliance + user-agent rotation

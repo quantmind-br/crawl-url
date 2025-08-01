@@ -1,399 +1,259 @@
 # crawl-url
 
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![PyPI](https://img.shields.io/badge/pypi-crawl--url-orange.svg)](https://pypi.org/project/crawl-url/)
+A powerful Python CLI tool for extracting URLs from websites with intelligent mode switching and cross-platform support.
 
-A powerful, cross-platform terminal application for extracting URLs from websites. Supports both sitemap.xml parsing and recursive website crawling with an intuitive PyTermGUI interface.
+## ✨ Features
 
-## Features
+**🕷️ URL Discovery**: Extract URLs from websites using two specialized modes
+- **Sitemap Mode**: Parse `sitemap.xml` files and sitemap indexes efficiently
+- **Crawl Mode**: Recursive website crawling with configurable depth and rate limiting
 
-- **Two Crawling Modes**:
-  - **Sitemap Mode**: Fast extraction from sitemap.xml files with automatic discovery
-  - **Crawl Mode**: Recursive website crawling with configurable depth limits
+**🖥️ Platform Support**: Works seamlessly across Windows, Linux, and macOS
+- Automatic Windows console fallback (no PyTermGUI issues)
+- Full PyTermGUI interface on Linux
+- Unicode-safe terminal output everywhere
 
-- **Interactive Terminal Interface**:
-  - Beautiful PyTermGUI interface with progressive disclosure
-  - Windows compatibility with automatic console fallback
-  - Real-time progress tracking and results display
+**⚙️ Configuration**: 
+- CLI flags for quick one-liners
+- Interactive TUI mode for guided usage
+- Configurable rate limiting, depth limits, and URL filtering
 
-- **Flexible Output Options**:
-  - Multiple formats: TXT, JSON, CSV
-  - Automatic filename generation based on domain and timestamp
-  - Custom output paths supported
+## 🚀 Quick Start
 
-- **Smart URL Filtering**:
-  - Filter URLs by base URL pattern
-  - Automatic deduplication using efficient hashing
-  - Support for relative and absolute URL resolution
-
-- **Respectful Crawling**:
-  - Configurable rate limiting with per-domain delays
-  - robots.txt compliance checking
-  - Memory-efficient parsing for large sitemaps
-
-- **Cross-Platform Compatibility**:
-  - Works on Windows and Linux
-  - Automatic terminal compatibility detection
-  - Console fallback for unsupported environments
-
-## Installation
-
-### From PyPI (Recommended)
-
+### Installation
 ```bash
+# Quick setup (Windows)
+python setup.bat
+
+# Quick setup (Unix/Linux/Mac)
+./setup-advanced.bat
+
+# Manual installation
 pip install crawl-url
+
+# From source
+pip install -e ".[dev]"
 ```
 
-### From Source
-
+### Basic Usage
 ```bash
-git clone https://github.com/your-username/crawl-url.git
-cd crawl-url
-pip install -e .
+# Extract URLs from any website
+crawl-url crawl https://example.com
+
+# Use sitemap mode (faster)
+crawl-url crawl https://example.com --mode sitemap
+
+# Customize depth and rate limiting
+crawl-url crawl https://example.com --depth 5 --delay 1.0
+
+# Save results
+ crawl-url crawl https://example.com --format json > urls.json
 ```
 
-## Quick Start
+## 📋 Commands
+
+### CLI Mode
+```bash
+# Basic crawling
+crawl-url crawl <URL> [OPTIONS]
+
+# Interactive mode
+crawl-url interactive
+
+# Help and version
+crawl-url --help
+crawl-url --version
+```
+
+### CLI Options
+```
+--mode [auto|sitemap|crawl]     # Discovery mode (default: auto)
+--depth INTEGER                 # Crawl depth 1-10 (default: 3)  
+--delay FLOAT                   # Request delay in seconds (default: 1.0)
+--format [txt|json|csv]         # Output format (default: txt)
+--filter TEXT                   # Substring to filter URLs by
+--user-agent TEXT              # Custom user agent string
+--timeout INTEGER               # Request timeout in seconds
+```
 
 ### Interactive Mode
-
-Launch the interactive terminal interface:
-
+For guided usage with prompts and progress indicators:
 ```bash
 crawl-url interactive
 ```
 
-The interface provides:
-- URL input with validation
-- Mode selection (auto-detect, sitemap, or crawl)
-- Configurable crawling parameters
-- Real-time progress tracking
-- Results preview and export options
+## 🎯 Usage Examples
 
-### Command Line Mode
-
-#### Auto-detect Mode
+### Sitemap Extraction
 ```bash
-# Automatically detects sitemap.xml URLs vs regular website URLs
-crawl-url crawl https://example.com
-crawl-url crawl https://example.com/sitemap.xml
+# Extract from sitemap.xml
+crawl-url crawl https://example.com --mode sitemap --format json
+
+# Handle sitemap indexes automatically
+crawl-url crawl https://example.com/sitemap_index.xml --mode sitemap
 ```
 
-#### Sitemap Mode
+### Deep Crawling
 ```bash
-# Extract URLs from sitemap.xml
-crawl-url crawl https://example.com/sitemap.xml --mode sitemap
+# Crawl with depth customization
+crawl-url crawl https://blog.example.com --depth 5 --delay 2.0
 
-# With custom output format
-crawl-url crawl https://example.com/sitemap.xml --format json --output results.json
+# Respect robots.txt while crawling
+crawl-url crawl https://example.com --user-agent "crawl-url/1.0"
 ```
-
-#### Website Crawling Mode
-```bash
-# Recursive website crawling
-crawl-url crawl https://example.com --mode crawl --depth 3
-
-# With URL filtering and rate limiting
-crawl-url crawl https://example.com --filter "https://example.com/docs/" --delay 2
-```
-
-## Command Line Options
-
-```
-crawl-url crawl [URL] [OPTIONS]
-
-Arguments:
-  URL  The website URL or sitemap.xml URL to process
-
-Options:
-  --mode [auto|sitemap|crawl]  Crawling mode (default: auto)
-  --output PATH               Custom output file path
-  --format [txt|json|csv]     Output format (default: txt)
-  --depth INTEGER             Maximum crawl depth 1-10 (default: 3)
-  --filter TEXT               Filter URLs by base URL pattern
-  --delay FLOAT               Delay between requests in seconds (default: 1.0)
-  --verbose                   Show detailed progress information
-  --help                      Show help message
-```
-
-## Output Formats
-
-### TXT Format
-```
-https://example.com/page1
-https://example.com/page2
-https://example.com/blog/post1
-```
-
-### JSON Format
-```json
-{
-  "metadata": {
-    "crawl_date": "2024-01-15 14:30:00",
-    "total_urls": 150,
-    "base_url": "https://example.com",
-    "format_version": "1.0"
-  },
-  "urls": [
-    "https://example.com/page1",
-    "https://example.com/page2"
-  ]
-}
-```
-
-### CSV Format
-```csv
-URL,Domain,Path
-https://example.com/page1,example.com,/page1
-https://example.com/page2,example.com,/page2
-```
-
-## Advanced Usage
 
 ### URL Filtering
-
-Filter URLs to extract only specific sections of a website:
-
 ```bash
-# Only extract documentation URLs
-crawl-url crawl https://example.com --filter "https://example.com/docs/"
-
-# Only extract blog posts
-crawl-url crawl https://example.com --filter "https://example.com/blog/"
+# Filter by domain or path
+crawl-url crawl https://example.com --filter "/blog/"
+crawl-url crawl https://example.com --filter ".pdf"
 ```
 
-### Sitemap Discovery
-
-The tool automatically discovers sitemaps from:
-- robots.txt file
-- Common locations (`/sitemap.xml`, `/sitemap_index.xml`)
-- Sitemap index files with recursive processing
-
-### Rate Limiting
-
-Configure delays to be respectful to target websites:
-
+### Output Formats
 ```bash
-# Wait 2 seconds between requests
-crawl-url crawl https://example.com --delay 2.0
+# Plain text (default)
+crawl-url crawl https://example.com > urls.txt
 
-# Conservative crawling with 5-second delays
-crawl-url crawl https://example.com --delay 5.0 --depth 2
+# JSON for programmatic use
+crawl-url crawl https://example.com --format json | jq '.urls[]'
+
+# CSV for spreadsheet analysis
+crawl-url crawl https://example.com --format csv > urls.csv
 ```
 
-## Python API
+## 🛠️ Development
 
-Use crawl-url as a Python library:
-
-```python
-from crawl_url import CrawlerService, SitemapService, StorageManager
-from crawl_url.core.models import CrawlConfig
-
-# Sitemap processing
-sitemap_service = SitemapService()
-result = sitemap_service.process_sitemap_url("https://example.com/sitemap.xml")
-
-if result.success:
-    print(f"Found {result.count} URLs")
-    for url in result.urls[:5]:  # Show first 5 URLs
-        print(f"  {url}")
-
-# Website crawling
-crawler_service = CrawlerService()
-result = crawler_service.crawl_url(
-    "https://example.com",
-    max_depth=2,
-    filter_base="https://example.com/docs/"
-)
-
-# Save results
-storage_manager = StorageManager()
-output_path = storage_manager.save_urls(
-    urls=result.urls,
-    base_url="https://example.com",
-    format_type="json"
-)
-print(f"Results saved to: {output_path}")
-```
-
-## Configuration
-
-### Environment Variables
-
+### Setup Development Environment
 ```bash
-# Set default crawl delay
-export CRAWL_URL_DEFAULT_DELAY=1.5
-
-# Set default output format
-export CRAWL_URL_DEFAULT_FORMAT=json
-
-# Set default max depth
-export CRAWL_URL_DEFAULT_DEPTH=3
-```
-
-### Configuration File
-
-Create a `.crawl-url.json` configuration file in your home directory:
-
-```json
-{
-  "default_delay": 1.0,
-  "default_format": "txt",
-  "default_depth": 3,
-  "respect_robots_txt": true,
-  "user_agent": "crawl-url/1.0.0"
-}
-```
-
-## System Requirements
-
-- **Python**: 3.8 or higher
-- **Operating System**: Windows 10+, Linux (most distributions)
-- **Memory**: Minimum 512MB RAM (more for large websites)
-- **Network**: Internet connection for crawling
-
-### Dependencies
-
-Core dependencies:
-- `requests` - HTTP client for web requests
-- `beautifulsoup4` - HTML parsing and URL extraction
-- `lxml` - Fast XML parsing for sitemaps
-- `typer` - Modern CLI framework
-- `rich` - Rich text and progress bars
-
-Optional dependencies:
-- `pytermgui` - Terminal user interface (auto-installs, falls back to console on failure)
-
-## Platform-Specific Notes
-
-### Windows
-- Automatically detects Windows Terminal compatibility
-- Falls back to console mode if PyTermGUI fails
-- Supports PowerShell, Command Prompt, and Windows Terminal
-
-### Linux
-- Full PyTermGUI support on most distributions
-- Tested on Ubuntu, Debian, CentOS, and Arch Linux
-- Requires terminal with Unicode support for best experience
-
-## Troubleshooting
-
-### Common Issues
-
-**PyTermGUI Interface Won't Start**
-```bash
-# Force console mode
-crawl-url interactive --console-mode
-
-# Or use command-line interface instead
-crawl-url crawl https://example.com
-```
-
-**Memory Issues with Large Sitemaps**
-```bash
-# Use streaming mode for large sitemaps
-crawl-url crawl https://example.com/sitemap.xml --stream
-
-# Or process in smaller chunks
-crawl-url crawl https://example.com --depth 1
-```
-
-**Rate Limiting / Blocked Requests**
-```bash
-# Increase delay between requests
-crawl-url crawl https://example.com --delay 3.0
-
-# Use more conservative settings
-crawl-url crawl https://example.com --delay 5.0 --depth 2
-```
-
-### Debug Mode
-
-Enable verbose output for troubleshooting:
-
-```bash
-crawl-url crawl https://example.com --verbose
-```
-
-This shows:
-- Detailed request/response information
-- robots.txt checking results
-- URL filtering decisions
-- Progress updates and timing
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Setup
-
-```bash
-git clone https://github.com/your-username/crawl-url.git
+# Clone repository
+git clone <repository-url>
 cd crawl-url
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
 # Install development dependencies
+python -m venv venv
+# Windows: venv\Scripts\activate
+# Unix: source venv/bin/activate
 pip install -e ".[dev]"
 
 # Run tests
-pytest
-
-# Run linting
-ruff check src/ tests/
-black --check src/ tests/
-
-# Run type checking
-mypy src/
+pytest                    # All tests
+pytest -m unit           # Unit tests only
+pytest -v                # Verbose output
+pytest --cov-report=html # Coverage report
 ```
 
-### Running Tests
-
+### Code Quality
 ```bash
-# Run all tests
-pytest
+# Format and lint
+black src/ tests/
+ruff check src/ tests/
+mypy src/
 
-# Run with coverage
-pytest --cov=crawl_url --cov-report=html
+# Run all quality checks
+ruff check src/ tests/ && black --check src/ tests/ && mypy src/ && pytest
 
-# Run specific test file
-pytest tests/test_crawler.py
-
-# Run tests with verbose output
-pytest -v
+# Build package
+python -m build
 ```
 
-## License
+### Testing
+This project uses pytest with comprehensive test coverage:
+- **Unit tests**: Fast, isolated tests with mocks
+- **Integration tests**: End-to-end CLI and API testing
+- **Platform tests**: Cross-platform compatibility validation
+- **Coverage**: HTML reports available in `htmlcov/`
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Run test suites:
+```bash
+pytest -m unit          # 100ms fast tests
+pytest -m integration   # End-to-end workflows  
+pytest -m "not slow"    # Skip network tests
+```
 
-## Changelog
+## 🏗️ Architecture
 
-### v1.0.0 (2024-01-15)
-- Initial release
-- Interactive PyTermGUI interface with Windows fallback
-- Sitemap.xml parsing with automatic discovery
-- Recursive website crawling with depth limits
-- Multiple output formats (TXT, JSON, CSV)
-- URL filtering and deduplication
-- Rate limiting and robots.txt compliance
-- Cross-platform compatibility (Windows/Linux)
+```
+crawl-url/
+├── src/crawl_url/
+│   ├── cli.py              # Typer CLI registration
+│   ├── core/
+│   │   ├── models.py       # Config/result validation
+│   │   ├── crawler.py      # HTTP crawling + rate limiting
+│   │   ├── sitemap_parser.py  # XML parsing
+│   │   └── ui.py           # PyTermGUI + console fallback
+│   └── utils/
+│       ├── storage.py      # File I/O (TXT/JSON/CSV)
+│       └── validation.py   # URL filtering utilities
+└── tests/
+    ├── test_*.py          # Unit/integration tests
+    └── conftest.py        # Test fixtures and mocks
+```
 
-## Support
+## 🌍 Platform Compatibility
 
-- **Documentation**: [Full documentation](https://crawl-url.readthedocs.io/)
-- **Issues**: [GitHub Issues](https://github.com/your-username/crawl-url/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/crawl-url/discussions)
+### Windows
+- Automatic console mode (PyTermGUI fallback)
+- PowerShell/CMD compatibility
+- Unicode-safe terminal output
 
-## Acknowledgments
+### Linux & Unix
+- Full PyTermGUI interface with ncurses
+- Rich terminal features and colors
+- Bash/Zsh completion
 
-- Built with [PyTermGUI](https://github.com/bczsalba/pytermgui) for the terminal interface
-- Uses [Typer](https://typer.tiangolo.com/) for the modern CLI framework
-- XML parsing powered by [lxml](https://lxml.de/)
-- HTML parsing with [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/)
+### macOS
+- Native terminal support
+- Homebrew installation ready
 
----
+## 📊 Performance
 
-**Made with ❤️ for the web crawling community**
+**Sitemap Mode**: O(n) - Direct XML parsing
+**Crawl Mode**: O(n²) worst case (depth×links) with configured limits
+
+**Tuning recommends:**
+- `--depth 3` for average sites (≤1000 URLs)
+- `--delay 1.0` to respect server resources
+- `--timeout 30` for slower connections
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/new-mode`
+3. Run quality checks: `ruff check src/ tests/ && black src/ tests/ && mypy src/ && pytest`
+4. Submit pull request with clear commit messages
+
+### Development Setup
+```bash
+# Install pre-commit hooks
+pre-commit install
+
+# Run validation test
+python final_validation.py
+
+# Package testing
+pip install -e .
+crawl-url --version
+crawl-url crawl https://example.com --depth 1
+crawl-url interactive  # Test TUI
+```
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🐛 Troubleshooting
+
+**Permission Issues on Windows:**
+```bash
+# Use PowerShell as Administrator
+python setup.bat
+```
+
+**Python Version Issues:**
+- Requires Python 3.8+ (see pyproject.toml)
+- Tested on Python 3.8-3.12
+
+**Network Errors:**
+- Check internet connectivity
+- Verify robots.txt allows crawling
+- Use longer `--timeout` for slow connections
