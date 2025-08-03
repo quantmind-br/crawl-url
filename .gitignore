@@ -171,3 +171,6 @@ crawl.log
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Crush agent local data
+.crush/
